@@ -1,0 +1,392 @@
+import {
+    ByCategoryProductApiResponse, DeleteProductApiResponse, MyProductApiResponse,
+    ProductDetailApiResponse,
+    ProductSearchApiResponse, UpdateProductStatusApiResponse, UpdateProductViewCountApiResponse
+} from "@/types/product";
+
+class ProductService {
+    async search(
+        key: string,
+        params?: Record<string, string | number | string[]>
+    ): Promise<ProductSearchApiResponse> {
+        try {
+            const baseUrl = process.env.NEXT_PUBLIC_SITE_URL;
+            if (!baseUrl) {
+                throw new Error("NEXT_PUBLIC_SITE_URL is not defined");
+            }
+
+            const allParams = { title: key, ...(params || {}) };
+            const queryString = new URLSearchParams();
+
+            for (const [name, value] of Object.entries(allParams)) {
+                if (Array.isArray(value)) {
+                    value.forEach(v => v != null && queryString.append(name, String(v)));
+                } else if (value != null && value !== "") {
+                    queryString.append(name, String(value));
+                }
+            }
+
+            const url = `${baseUrl}/api/product/search?${queryString.toString()}`;
+
+            const response = await fetch(url, {
+                method: "GET",
+                headers: { "Accept": "application/json" },
+                next: { revalidate: 60 },
+            });
+
+            if (!response.ok) {
+                const text = await response.text();
+                console.error("API error:", response.status, text);
+                return { success: false, code: response.status, data: [] };
+            }
+
+            return (await response.json()) as ProductSearchApiResponse;
+        } catch (error) {
+            console.error("Search failed:", error);
+            return { success: false, code: 500, data: [] };
+        }
+    }
+    async getDetailBySlug(slug: string): Promise<ProductDetailApiResponse> {
+        if (!slug) {
+            return {
+                success: false,
+                code: 400,
+                error: "Slug is required",
+            };
+        }
+
+        const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+        const url = `${baseUrl}/api/product/${encodeURIComponent(slug)}`;
+
+        try {
+            const res = await fetch(url, {
+                method: "GET",
+                headers: { "Accept": "application/json" },
+            });
+
+            if (!res.ok) {
+                try {
+                    const errorData = await res.json();
+                    return errorData as ProductDetailApiResponse;
+                } catch {
+                    return {
+                        success: false,
+                        code: res.status,
+                        error: "Failed to fetch product",
+                    };
+                }
+            }
+
+            const data = await res.json();
+            return data as ProductDetailApiResponse;
+        } catch (error) {
+            console.error("Product fetch error:", error);
+            return {
+                success: false,
+                code: 500,
+                error: "Network error",
+            };
+        }
+    }
+    async updateStatus(
+        id: number,
+        status: string,
+        accessToken: string
+    ): Promise<UpdateProductStatusApiResponse> {
+
+        if (!id) {
+            return {
+                success: false,
+                code: 400,
+            } as UpdateProductStatusApiResponse;
+        }
+
+        if (!status) {
+            return {
+                success: false,
+                code: 400,
+            } as UpdateProductStatusApiResponse;
+        }
+
+        const baseUrl =
+            process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+
+        const url = new URL(`${baseUrl}/api/product/status`);
+        url.searchParams.set("id", String(id));
+
+        try {
+            const res = await fetch(url.toString(), {
+                method: "PATCH",
+                headers: {
+                    Accept: "application/json",
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${accessToken}`,
+                },
+                body: JSON.stringify({
+                    status,
+                }),
+                cache: "no-store",
+            });
+
+            if (!res.ok) {
+                try {
+                    const errorData = await res.json();
+                    return errorData as UpdateProductStatusApiResponse;
+                } catch {
+                    return {
+                        success: false,
+                        code: res.status,
+                    } as UpdateProductStatusApiResponse;
+                }
+            }
+
+            const data = await res.json();
+            return data as UpdateProductStatusApiResponse;
+
+        } catch (error) {
+            console.error("Update Product Status error:", error);
+            return {
+                success: false,
+                code: 500,
+            } as UpdateProductStatusApiResponse;
+        }
+    }
+
+    async updateViewCount(
+        productId: number,
+    ): Promise<UpdateProductViewCountApiResponse> {
+
+        if (!productId) {
+            return {
+                success: false,
+                code: 400,
+            };
+        }
+
+        const baseUrl =
+            process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+
+        const url = new URL(`${baseUrl}/api/product`);
+        url.searchParams.set("product_id", String(productId));
+
+        try {
+            const res = await fetch(url.toString(), {
+                method: "PATCH",
+                headers: {
+                    Accept: "application/json",
+                },
+                cache: "no-store",
+            });
+
+            if (!res.ok) {
+                try {
+                    const errorData = await res.json();
+                    return errorData as UpdateProductViewCountApiResponse;
+                } catch {
+                    return {
+                        success: false,
+                        code: res.status,
+                    };
+                }
+            }
+
+            const data = await res.json();
+            return data as UpdateProductViewCountApiResponse;
+
+        } catch (error) {
+            console.error("Update Product View Count error:", error);
+            return {
+                success: false,
+                code: 500,
+            };
+        }
+    }
+
+    async deleteProduct(
+        id: number,
+        accessToken: string
+    ): Promise<DeleteProductApiResponse> {
+
+        if (!id) {
+            return {
+                success: false,
+                code: 400,
+                error: "productId is required",
+            } as DeleteProductApiResponse;
+        }
+
+        const baseUrl =
+            process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+
+        const url = new URL(`${baseUrl}/api/product`);
+        url.searchParams.set("id", String(id));
+
+        try {
+            const res = await fetch(url.toString(), {
+                method: "DELETE",
+                headers: {
+                    Accept: "application/json",
+                    Authorization: `Bearer ${accessToken}`,
+                },
+                cache: "no-store",
+            });
+
+            if (!res.ok) {
+                try {
+                    const errorData = await res.json();
+                    return errorData as DeleteProductApiResponse;
+                } catch {
+                    return {
+                        success: false,
+                        code: res.status,
+                        error: "Failed to delete product",
+                    } as DeleteProductApiResponse;
+                }
+            }
+
+            const data = await res.json();
+            return data as DeleteProductApiResponse;
+
+        } catch (error) {
+            console.error("Delete Product error:", error);
+            return {
+                success: false,
+                code: 500,
+                error: "Network error",
+            } as DeleteProductApiResponse;
+        }
+    }
+
+    async getMyProducts(
+        userId: number,
+        sortBy: 'new_to_oldest' | 'oldest_to_new' | 'most_liked' = 'new_to_oldest',
+    ): Promise<MyProductApiResponse> {
+
+        if (!userId) {
+            return {
+                success: false,
+                code: 400,
+                error: "userId is required",
+            } as MyProductApiResponse;
+        }
+
+        const baseUrl =
+            process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+
+        const url = new URL(`${baseUrl}/api/product/my-ads`);
+        url.searchParams.set("userId", String(userId));
+        url.searchParams.set("sortBy", sortBy);
+
+        try {
+            const res = await fetch(url.toString(), {
+                method: "GET",
+                headers: {
+                    Accept: "application/json",
+                },
+                cache: "no-store",
+            });
+
+            if (!res.ok) {
+                try {
+                    const errorData = await res.json();
+                    return errorData as MyProductApiResponse;
+                } catch {
+                    return {
+                        success: false,
+                        code: res.status,
+                        error: "Failed to fetch my products",
+                    } as MyProductApiResponse;
+                }
+            }
+
+            const data = await res.json();
+            return data as MyProductApiResponse;
+
+        } catch (error) {
+            console.error("My Products fetch error:", error);
+            return {
+                success: false,
+                code: 500,
+                error: "Network error",
+            } as MyProductApiResponse;
+        }
+    }
+    async getByCategory(params: {
+        categorySlug: string;
+        subCategorySlug?: string[];
+        sortBy?: string;
+        minPrice?: number;
+        maxPrice?: number;
+        limit?: number;
+        offset?: number;
+        latitude?: number;
+        longitude?: number;
+    }): Promise<ByCategoryProductApiResponse> {
+        const {
+            categorySlug,
+            subCategorySlug,
+            sortBy,
+            minPrice,
+            maxPrice,
+            limit,
+            offset,
+            latitude,
+            longitude,
+        } = params;
+
+        if (!categorySlug) {
+            return {
+                success: false,
+                code: 400,
+                error: "categorySlug is required",
+            };
+        }
+
+        const baseUrl =
+            process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+        const queryParams = new URLSearchParams();
+
+        queryParams.set("categorySlug", categorySlug);
+
+        subCategorySlug?.forEach(slug =>
+            queryParams.append("subCategorySlug", slug)
+        );
+
+        if (sortBy) queryParams.set("sortBy", sortBy);
+        if (minPrice !== undefined)
+            queryParams.set("minPrice", minPrice.toString());
+        if (maxPrice !== undefined)
+            queryParams.set("maxPrice", maxPrice.toString());
+        if (limit !== undefined)
+            queryParams.set("limit", limit.toString());
+        if (offset !== undefined)
+            queryParams.set("offset", offset.toString());
+
+        if (latitude !== undefined)
+            queryParams.set("latitude", latitude.toString());
+        if (longitude !== undefined)
+            queryParams.set("longitude", longitude.toString());
+
+        const url = `${baseUrl}/api/product/category?${queryParams.toString()}`;
+
+        try {
+            const res = await fetch(url, {
+                method: "GET",
+                headers: { Accept: "application/json" },
+                cache: "no-store",
+            });
+
+            return await res.json();
+        } catch (err) {
+            console.error("Product category fetch error:", err);
+            return {
+                success: false,
+                code: 500,
+                error: "Network error",
+            };
+        }
+    }
+}
+
+export const productService = new ProductService();
+export default productService;

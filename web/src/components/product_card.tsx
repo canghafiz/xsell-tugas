@@ -1,0 +1,95 @@
+'use client';
+
+import { ProductItem } from "@/types/product";
+import Image from "next/image";
+import { useState } from "react";
+import WishlistBtn from "@/components/wishlist_btn";
+import Link from "next/link";
+import { formatCurrency } from "@/utils/currency";
+import { MapPin } from "lucide-react";
+
+interface ProductCardProps {
+    product: ProductItem;
+    imagePrefixUrl: string;
+    forGrid?: boolean;
+}
+
+export default function ProductCard({ product, imagePrefixUrl, forGrid = false }: ProductCardProps) {
+    const [isHovered, setIsHovered] = useState(false);
+    const formattedPrice = formatCurrency(product.price);
+
+    const containerClass = forGrid ? "block w-full" : "block flex-shrink-0 w-54";
+    const cardClass = forGrid ? "w-full cursor-pointer" : "flex-shrink-0 w-54 cursor-pointer";
+    const imageContainerClass = forGrid
+        ? "relative w-full bg-gray-100 rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300"
+        : "relative pb-[100%] rounded-2xl overflow-hidden bg-gray-100 shadow-sm";
+    const badgePositionClass = forGrid ? "top-3 left-3" : "top-2 left-2";
+    const wishlistPositionClass = forGrid ? "top-3 right-3" : "top-2 right-2";
+    const badgeTextClass = forGrid
+        ? "text-xs px-2.5 py-1 rounded-full"
+        : "text-[11px] px-2 py-1 rounded-full";
+    const productInfoClass = forGrid ? "mt-3 px-1" : "mt-3";
+    const titleClass = "text-sm font-medium text-gray-900 truncate"; // ✅ 1 line only
+    const priceClass = "font-bold text-base text-gray-900 mt-1"; // ✅ directly below title
+    const locationClass = "text-xs text-gray-600 mt-1 flex items-center gap-1"; // ✅ below price
+
+    return (
+        <Link href={`/product/${product.product_slug}`} className={containerClass}>
+            <div
+                className={cardClass}
+                onMouseEnter={() => setIsHovered(true)}
+                onMouseLeave={() => setIsHovered(false)}
+            >
+                <div className={imageContainerClass} style={forGrid ? { paddingBottom: '100%' } : undefined}>
+                    <div className="absolute inset-0">
+                        <Image
+                            src={imagePrefixUrl + product.images[0]?.url}
+                            alt={product.title}
+                            fill
+                            sizes={forGrid ? "(max-width: 640px) 50vw, (max-width: 1024px) 50vw, 33vw" : undefined}
+                            className={`object-cover transition-opacity duration-300 ${
+                                isHovered && product.images.length > 1 ? 'opacity-0' : 'opacity-100'
+                            }`}
+                            unoptimized
+                        />
+                    </div>
+
+                    {product.images.length > 1 && (
+                        <div className="absolute inset-0">
+                            <Image
+                                src={imagePrefixUrl + product.images[1].url}
+                                alt={`${product.title} hover`}
+                                fill
+                                sizes={forGrid ? "(max-width: 640px) 50vw, (max-width: 1024px) 50vw, 33vw" : undefined}
+                                className={`object-cover transition-opacity duration-300 ${
+                                    isHovered ? 'opacity-100' : 'opacity-0'
+                                }`}
+                                unoptimized
+                            />
+                        </div>
+                    )}
+
+                    <div className={`absolute z-10 ${badgePositionClass}`}>
+                        <span className={`bg-red-600 text-white ${badgeTextClass} font-medium shadow-sm`}>
+                            {product.condition}
+                        </span>
+                    </div>
+
+                    <div className={`absolute z-10 ${wishlistPositionClass}`}>
+                        <WishlistBtn productId={product.product_id} />
+                    </div>
+                </div>
+
+                {/* Product Info: title → price → location */}
+                <div className={productInfoClass}>
+                    <h3 className={titleClass}>{product.title}</h3>
+                    <div className={priceClass}>{formattedPrice}</div>
+                    <div className={locationClass}>
+                        <MapPin className="h-3 w-3 flex-shrink-0" aria-hidden="true" />
+                        <span className="truncate">{product.location.address}</span>
+                    </div>
+                </div>
+            </div>
+        </Link>
+    );
+}
