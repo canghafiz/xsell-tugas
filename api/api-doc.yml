@@ -1,0 +1,218 @@
+swagger: "2.0"
+
+info:
+  title: "API XSELL"
+  description: "API SPEC"
+  version: 1.0.0
+
+host: "localhost"
+
+basePath: /api/v1/member/
+
+# Models
+definitions:
+  loginBodyRequest:
+    type: object
+    properties:
+      email:
+        type: string
+        description: email
+      password:
+        type: string
+        description: user password
+
+  loginResponse:
+    type: object
+    properties:
+      success:
+        type: boolean
+        description: define request success or not
+      code:
+        type: number
+        description: code response result
+      data:
+        type: string
+        description: jwt token
+
+  regisBodyRequest:
+    type: object
+    properties:
+      first_name:
+        type: string
+        description: user first name
+      last_name:
+        type: string
+        null: true
+        description: user last name
+      email:
+        type: string
+        description: user email
+      password:
+        type: string
+        description: user password
+
+  regisResponse:
+    type: object
+    properties:
+      success:
+        type: boolean
+        description: define request success or not
+      code:
+        type: number
+        description: code response result
+
+  logoutResponse:
+    type: object
+    properties:
+      success:
+        type: boolean
+        description: define request success or not
+      code:
+        type: number
+        description: code response result
+
+  updateDataBodyRequest:
+     type: object
+     properties:
+       first_name:
+         type: string
+         description: user first name
+       last_name:
+         type: string
+         null: true
+         description: user last name
+       photo_profile_url:
+         type: string
+         null: true
+         description: user photo profile url
+ 
+  updateDataResponse:
+    type: object
+    properties:
+      success:
+        type: boolean
+        description: define request success or not
+      code:
+        type: number
+        description: code response result
+      data:
+        type: object
+        properties:
+          user_id:
+            type: integer
+            description: user id
+          email:
+            type: string
+            description: user email
+          role:
+            type: string
+            description: user role
+          first_name:
+            type: string
+            description: user first name
+          last_name:
+            type: string
+            nullable: true
+            description: user last name
+          photo_profile:
+            type: string
+            nullable: true
+            description: profile photo url (nullable)
+
+# Url
+paths:
+  /user/login:
+    post:
+      tags:
+        - "Authentication"
+      summary: "Endpoint for login"
+      parameters:
+        - in: header
+          name: Authorization
+          type: string
+          required: true
+          description: "From laravel .env (API_KEY)"
+        - in: body
+          name: body
+          schema:
+            $ref: "#/definitions/loginBodyRequest"
+      responses:
+        200:
+          description: "Login berhasil"
+          schema:
+            $ref: "#/definitions/loginResponse"
+        400:
+          description: ""
+
+  /user/register:
+    post:
+      tags:
+        - "Authentication"
+      summary: "Endpoint for register"
+      parameters:
+        - in: header
+          name: Authorization
+          type: string
+          required: true
+          description: "From laravel .env (API_KEY)"
+        - in: body
+          name: body
+          schema:
+            $ref: "#/definitions/regisBodyRequest"
+      responses:
+        200:
+          description: "registrasi berhasil"
+          schema:
+            $ref: "#/definitions/regisResponse"
+
+  /user/logout/{email}:
+    delete:
+      tags:
+        - "Authentication"
+      summary: "Endpoint for logout"
+      parameters:
+        - in: header
+          name: Authorization
+          type: string
+          required: true
+          description: "From login token"
+          example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.xxx.yyy"
+        - in: path
+          name: email
+          type: string
+          required: true
+          description: "user email to logout"
+          example: "user@example.com"
+      responses:
+        200:
+          description: "logout berhasil"
+          schema:
+            $ref: "#/definitions/logoutResponse"
+
+  /user/{userId}:
+    put:
+      tags:
+        - "User Data"
+      summary: "Endpoint for update user data"
+      parameters:
+        - in: header
+          name: Authorization
+          type: string
+          required: true
+          description: "From login token"
+          example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.xxx.yyy"
+        - in: path
+          name: userId
+          type: number
+          required: true
+          description: "user id"
+          example: "1"
+        - in: body
+          name: body
+          schema:
+            $ref: "#/definitions/updateDataBodyRequest"
+      responses:
+        200:
+          description: "update data berhasil"
+          schema:
+            $ref: "#/definitions/updateDataResponse"
